@@ -1,0 +1,211 @@
+{
+  "devices": [
+    {
+      "device_id": "sensor_001",
+      "device_name": "车间温度传感器1",
+      "location": "生产车间A区",
+      "readings": [
+        {
+          "timestamp": "2024-01-15T08:00:00",
+          "temperature": 25.3,
+          "humidity": 60.5,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:05:00",
+          "temperature": 25.8,
+          "humidity": 61.2,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:10:00",
+          "temperature": 26.5,
+          "humidity": 62.0,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:15:00",
+          "temperature": 28.2,
+          "humidity": 63.5,
+          "status": "warning"
+        },
+        {
+          "timestamp": "2024-01-15T08:20:00",
+          "temperature": 29.5,
+          "humidity": 64.8,
+          "status": "alert"
+        },
+        {
+          "timestamp": "2024-01-15T08:25:00",
+          "temperature": 30.2,
+          "humidity": 65.5,
+          "status": "alert"
+        },
+        {
+          "timestamp": "2024-01-15T08:30:00",
+          "temperature": 29.8,
+          "humidity": 65.0,
+          "status": "alert"
+        },
+        {
+          "timestamp": "2024-01-15T08:35:00",
+          "temperature": 28.5,
+          "humidity": 64.0,
+          "status": "warning"
+        },
+        {
+          "timestamp": "2024-01-15T08:40:00",
+          "temperature": 27.2,
+          "humidity": 62.5,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:45:00",
+          "temperature": 26.8,
+          "humidity": 62.0,
+          "status": "normal"
+        }
+      ]
+    },
+    {
+      "device_id": "sensor_002",
+      "device_name": "仓库温度传感器2",
+      "location": "仓储区B区",
+      "readings": [
+        {
+          "timestamp": "2024-01-15T08:00:00",
+          "temperature": 22.1,
+          "humidity": 55.3,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:05:00",
+          "temperature": 22.3,
+          "humidity": 55.8,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:10:00",
+          "temperature": 22.5,
+          "humidity": 56.0,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:15:00",
+          "temperature": 22.7,
+          "humidity": 56.2,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:20:00",
+          "temperature": 22.9,
+          "humidity": 56.5,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:25:00",
+          "temperature": 23.1,
+          "humidity": 56.8,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:30:00",
+          "temperature": 23.3,
+          "humidity": 57.0,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:35:00",
+          "temperature": 23.5,
+          "humidity": 57.2,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:40:00",
+          "temperature": 23.7,
+          "humidity": 57.5,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:45:00",
+          "temperature": 23.9,
+          "humidity": 57.8,
+          "status": "normal"
+        }
+      ]
+    },
+    {
+      "device_id": "sensor_003",
+      "device_name": "机房温度传感器3",
+      "location": "数据中心机房",
+      "readings": [
+        {
+          "timestamp": "2024-01-15T08:00:00",
+          "temperature": 20.5,
+          "humidity": 50.0,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:05:00",
+          "temperature": 20.8,
+          "humidity": 50.5,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:10:00",
+          "temperature": 21.2,
+          "humidity": 51.0,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:15:00",
+          "temperature": 21.8,
+          "humidity": 51.5,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:20:00",
+          "temperature": 22.5,
+          "humidity": 52.0,
+          "status": "normal"
+        },
+        {
+          "timestamp": "2024-01-15T08:25:00",
+          "temperature": 23.2,
+          "humidity": 52.5,
+          "status": "warning"
+        },
+        {
+          "timestamp": "2024-01-15T08:30:00",
+          "temperature": 24.0,
+          "humidity": 53.0,
+          "status": "warning"
+        },
+        {
+          "timestamp": "2024-01-15T08:35:00",
+          "temperature": 24.5,
+          "humidity": 53.5,
+          "status": "warning"
+        },
+        {
+          "timestamp": "2024-01-15T08:40:00",
+          "temperature": 24.8,
+          "humidity": 54.0,
+          "status": "warning"
+        },
+        {
+          "timestamp": "2024-01-15T08:45:00",
+          "temperature": 25.0,
+          "humidity": 54.5,
+          "status": "warning"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "last_updated": "2024-01-15T08:45:00",
+    "total_devices": 3,
+    "data_source": "simulated"
+  }
+}
+

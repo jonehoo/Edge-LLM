@@ -1,0 +1,76 @@
+# 应用配置文件示例
+# 复制此文件为 config.yaml 并填入实际配置
+
+# 数据配置
+data:
+  file_path: "data/temperature_data.json"
+  # 数据源类型: "json" 或 "database"
+  source: "json"  # 可选: "json" 或 "database"
+  
+# 数据库配置（当 data.source = "database" 时使用）
+database:
+  host: "localhost"
+  port: 3306
+  user: "edge-llm"
+  password: "your_password_here"  # 请修改为实际密码
+  database: "edge-llm"
+  charset: "utf8mb4"
+  # 连接超时配置（秒）
+  connect_timeout: 10
+  read_timeout: 30
+  write_timeout: 30
+  # 最大重试次数
+  max_retries: 3
+  
+# 模型配置
+model:
+  # 模型类型: "local" 或 "openai"
+  type: "local"  # 可选: "local" 或 "openai"
+  # 本地模型配置（当 type = "local" 时使用）
+  path: "models/qwen-0.6b.gguf"
+  # 上下文窗口大小（token数）
+  # 注意：如果看到 "n_ctx_per_seq < n_ctx_train" 警告，这是正常的
+  # 
+  # 最大值限制：
+  # 1. 理论最大值：模型训练时的上下文大小（通常为 4096, 8192, 16384, 32768, 65536 等）
+  # 2. 实际限制：取决于可用内存
+  #    - 内存估算：n_ctx * 模型参数量 * 2-4 bytes（取决于量化精度）
+  #    - 例如：n_ctx=4096 的 0.6B 模型约需 2-4GB 内存
+  #    - 例如：n_ctx=32768 的 0.6B 模型约需 16-32GB 内存
+  # 
+  # 建议值：
+  # - 2048（默认，节省内存，适合大多数场景）
+  # - 4096（平衡性能和内存，推荐）
+  # - 8192（更高容量，需要 8GB+ 内存）
+  # - 16384（高容量，需要 16GB+ 内存）
+  # - 32768（极高容量，需要 32GB+ 内存）
+  # 
+  # 警告：设置过大会导致内存不足或系统崩溃，请根据系统内存谨慎设置
+  n_ctx: 4096
+  n_threads: 4
+
+# OpenAI配置（当 model.type = "openai" 时使用）
+openai: 
+  # OpenAI API密钥（必填）
+  api_key: "your_api_key_here"  # 请填入您的OpenAI API密钥
+  # OpenAI模型名称，可选: "gpt-3.5-turbo", "gpt-4", "gpt-4-turbo-preview" 等
+  model: "gpt-3.5-turbo"
+  # OpenAI API基础URL（可选，用于兼容OpenAI API的代理服务）
+  # base_url: "https://api.openai.com/v1"
+  
+# 分析配置
+analysis:
+  anomaly_threshold: 3.0
+  trend_window_size: 5
+  
+# Web应用配置
+web:
+  title: "边缘物联网温度分析系统"
+  port: 8501
+  host: "localhost"
+  
+# 数据写入配置
+data_writer:
+  interval: 60  # 写入间隔（秒）
+  json_file: "data/temperature_data.json"
+
