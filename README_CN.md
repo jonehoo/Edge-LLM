@@ -12,7 +12,7 @@
 
 [功能特性](#-功能特性) • [快速开始](#-快速开始) • [文档](#-文档) • [贡献](#-贡献)
 
-[中文](README.md) | [English](README_EN.md)
+[中文](README_CN.md) | [English](README.md)
 
 </div>
 
@@ -614,6 +614,6 @@ export OPENAI_API_KEY="your-api-key"
 
 [⬆ 回到顶部](#-edge-llm-边缘物联网温度分析系统)
 
-[中文](README.md) | [English](README_EN.md)
+[中文](README_CN.md) | [English](README.md)
 
 </div>

@@ -12,7 +12,7 @@
 
 [Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Contributing](#-contributing)
 
-[中文](README.md) | [English](README_EN.md)
+[中文](README_CN.md) | [English](README.md)
 
 </div>
 
@@ -614,7 +614,7 @@ If this project helps you, please give it a Star ⭐
 
 [⬆ Back to Top](#-edge-llm-edge-iot-temperature-analysis-system)
 
-[中文](README.md) | [English](README_EN.md)
+[中文](README_CN.md) | [English](README.md)
 
 </div>
 
