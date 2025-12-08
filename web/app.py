@@ -1,6 +1,7 @@
 """
 Streamlit Web应用
 温度数据分析可视化界面
+支持中英文切换
 """
 
 import streamlit as st
@@ -15,10 +16,16 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.analyzer import TemperatureAnalyzer
+from src.i18n import t, get_language, set_language
 
-# 页面配置
+# 初始化语言（需要在set_page_config之前）
+if 'language' not in st.session_state:
+    st.session_state.language = 'zh'  # 默认中文
+
+# 页面配置（动态标题）
+page_title = t("page_title") if 'language' in st.session_state else "边缘物联网温度分析系统"
 st.set_page_config(
-    page_title="边缘物联网温度分析系统",
+    page_title=page_title,
     page_icon="🌡️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -100,25 +107,49 @@ def init_analyzer():
 # 主应用
 def main():
     # 标题
-    st.markdown('<h1 class="main-header">🌡️ 边缘物联网温度分析系统</h1>', unsafe_allow_html=True)
+    st.markdown(f'<h1 class="main-header">{t("main_title")}</h1>', unsafe_allow_html=True)
     
     # 初始化分析器
     analyzer = init_analyzer()
     
     # 侧边栏
     with st.sidebar:
-        st.header("📊 导航")
+        st.header(t("nav"))
         
+        # 语言切换
+        lang_options = {"中文": "zh", "English": "en"}
+        current_lang = get_language()
+        
+        # 页面选择
+        page_options = [t("page_overview"), t("page_detail"), t("page_analysis"), t("page_visualization")]
         page = st.radio(
-            "选择页面",
-            ["设备概览", "设备详情", "综合分析", "数据可视化"],
+            t("nav"),
+            page_options,
             label_visibility="collapsed"
         )
+        
+        # 语言切换器
+        st.divider()
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            st.caption("🌐 Language")
+        with col2:
+            new_lang_name = st.selectbox(
+                "Language",
+                options=list(lang_options.keys()),
+                index=0 if current_lang == "zh" else 1,
+                label_visibility="collapsed",
+                key="lang_selector"
+            )
+            new_lang = lang_options[new_lang_name]
+            if new_lang != current_lang:
+                set_language(new_lang)
+                st.rerun()
         
         st.divider()
         
         # 手动刷新按钮
-        if st.button("🔄 刷新数据", width='stretch', key="manual_refresh_btn"):
+        if st.button(t("refresh_data"), width='stretch', key="manual_refresh_btn"):
             # 清除缓存以强制刷新
             if hasattr(analyzer.data_loader, 'clear_cache'):
                 analyzer.data_loader.clear_cache()
@@ -127,53 +158,53 @@ def main():
         st.divider()
         
         # 模型状态
-        st.subheader("🤖 模型状态")
+        st.subheader(t("model_status"))
         model_info = analyzer.llm_service.get_model_info()
         if analyzer.llm_service.is_available():
             if model_info['type'] == 'OpenAI':
-                st.success(f"✅ OpenAI模型已连接 ({model_info['model']})")
+                st.success(f"{t('openai_connected')} ({model_info['model']})")
             else:
-                st.success(f"✅ 本地大模型已加载")
-                st.caption(f"模型: {Path(model_info['model']).name}")
+                st.success(t("local_model_loaded"))
+                st.caption(f"{t('model_name')}: {Path(model_info['model']).name}")
         else:
             if model_info['type'] == 'OpenAI':
-                st.warning("⚠️ OpenAI连接失败")
-                st.info("提示：请检查API密钥和网络连接")
+                st.warning(t("openai_failed"))
+                st.info(t("openai_hint"))
             else:
-                st.warning("⚠️ 使用模拟模式（模型未加载）")
-                st.info("提示：安装llama-cpp-python并确保模型文件存在")
+                st.warning(t("using_mock_mode"))
+                st.info(t("mock_mode_hint"))
         
         st.divider()
         
         # 数据信息
-        st.subheader("📁 数据信息")
+        st.subheader(t("data_info"))
         devices = analyzer.get_device_list()
-        st.metric("设备数量", len(devices))
+        st.metric(t("device_count"), len(devices))
         total_readings = sum(d['readings_count'] for d in devices)
-        st.metric("总读数", total_readings)
+        st.metric(t("total_readings"), total_readings)
         
         # 显示最后更新时间
         from datetime import datetime
-        st.caption(f"最后更新: {datetime.now().strftime('%H:%M:%S')}")
+        st.caption(f"{t('last_update')}: {datetime.now().strftime('%H:%M:%S')}")
     
     # 根据选择的页面显示内容
-    if page == "设备概览":
+    if page == t("page_overview"):
         show_device_overview(analyzer)
-    elif page == "设备详情":
+    elif page == t("page_detail"):
         show_device_detail(analyzer)
-    elif page == "综合分析":
+    elif page == t("page_analysis"):
         show_comprehensive_analysis(analyzer)
-    elif page == "数据可视化":
+    elif page == t("page_visualization"):
         show_data_visualization(analyzer)
 
 def show_device_overview(analyzer):
     """显示设备概览"""
-    st.header("📋 设备概览")
+    st.header(t("device_overview"))
     
     devices = analyzer.get_device_list()
     
     if not devices:
-        st.warning("没有找到设备数据")
+        st.warning(t("no_devices"))
         return
     
     # 设备卡片
@@ -189,125 +220,136 @@ def show_device_overview(analyzer):
     st.divider()
     
     # 设备列表表格
-    st.subheader("设备列表")
+    st.subheader(t("device_list"))
     device_data = {
-        '设备ID': [d['device_id'] for d in devices],
-        '设备名称': [d['device_name'] for d in devices],
-        '位置': [d['location'] for d in devices],
-        '读数数量': [d['readings_count'] for d in devices]
+        t("device_id"): [d['device_id'] for d in devices],
+        t("device_name"): [d['device_name'] for d in devices],
+        t("location"): [d['location'] for d in devices],
+        t("readings_count"): [d['readings_count'] for d in devices]
     }
     st.dataframe(device_data, width='stretch', hide_index=True)
     
     # 快速统计
-    st.subheader("📊 快速统计")
+    st.subheader(t("quick_stats"))
     all_stats = analyzer.data_loader.get_statistics()
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("平均温度", f"{all_stats.get('avg_temperature', 0):.2f}°C")
+        st.metric(t("avg_temperature"), f"{all_stats.get('avg_temperature', 0):.2f}°C")
     with col2:
-        st.metric("最低温度", f"{all_stats.get('min_temperature', 0):.2f}°C")
+        st.metric(t("min_temperature"), f"{all_stats.get('min_temperature', 0):.2f}°C")
     with col3:
-        st.metric("最高温度", f"{all_stats.get('max_temperature', 0):.2f}°C")
+        st.metric(t("max_temperature"), f"{all_stats.get('max_temperature', 0):.2f}°C")
     with col4:
-        st.metric("温度范围", f"{all_stats.get('temperature_range', 0):.2f}°C")
+        st.metric(t("temperature_range"), f"{all_stats.get('temperature_range', 0):.2f}°C")
 
 def show_device_detail(analyzer):
     """显示设备详情"""
-    st.header("🔍 设备详情分析")
+    st.header(t("device_detail"))
     
     devices = analyzer.get_device_list()
     if not devices:
-        st.warning("没有找到设备数据")
+        st.warning(t("no_devices"))
         return
     
     # 设备选择
     device_options = {f"{d['device_name']} ({d['device_id']})": d['device_id'] 
                      for d in devices}
-    selected_device_name = st.selectbox("选择设备", list(device_options.keys()))
+    selected_device_name = st.selectbox(t("select_device"), list(device_options.keys()))
     device_id = device_options[selected_device_name]
     
     st.divider()
     
     # 加载分析结果
-    with st.spinner("正在分析设备数据..."):
+    with st.spinner(t("analyzing_data")):
         analysis = analyzer.analyze_device(device_id)
     
     # 统计信息
-    st.subheader("📈 统计信息")
+    st.subheader(t("statistics"))
     stats = analysis['statistics']
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("平均温度", f"{stats.get('avg_temperature', 0):.2f}°C")
+        st.metric(t("avg_temperature"), f"{stats.get('avg_temperature', 0):.2f}°C")
     with col2:
-        st.metric("最低温度", f"{stats.get('min_temperature', 0):.2f}°C")
+        st.metric(t("min_temperature"), f"{stats.get('min_temperature', 0):.2f}°C")
     with col3:
-        st.metric("最高温度", f"{stats.get('max_temperature', 0):.2f}°C")
+        st.metric(t("max_temperature"), f"{stats.get('max_temperature', 0):.2f}°C")
     with col4:
-        st.metric("总读数", stats.get('total_readings', 0))
+        st.metric(t("total_readings"), stats.get('total_readings', 0))
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("正常", stats.get('normal_count', 0), delta="正常状态")
+        st.metric(t("normal"), stats.get('normal_count', 0), delta=t("normal_status"))
     with col2:
-        st.metric("警告", stats.get('warning_count', 0), delta="警告状态", delta_color="inverse")
+        st.metric(t("warning"), stats.get('warning_count', 0), delta=t("warning_status"), delta_color="inverse")
     with col3:
-        st.metric("告警", stats.get('alert_count', 0), delta="告警状态", delta_color="inverse")
+        st.metric(t("alert"), stats.get('alert_count', 0), delta=t("alert_status"), delta_color="inverse")
     
     # 最新读数
-    st.subheader("📡 最新读数")
+    st.subheader(t("latest_reading"))
     latest = analysis['latest_reading']
     if latest:
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("时间", latest['timestamp'])
+            st.metric(t("time"), latest['timestamp'])
         with col2:
-            st.metric("温度", f"{latest['temperature']}°C")
+            st.metric(t("temperature"), f"{latest['temperature']}°C")
         with col3:
-            st.metric("湿度", f"{latest['humidity']}%")
+            st.metric(t("humidity"), f"{latest['humidity']}%")
         with col4:
+            status_map = {"normal": t("normal"), "warning": t("warning"), "alert": t("alert")}
             status_emoji = {"normal": "✅", "warning": "⚠️", "alert": "🚨"}.get(latest['status'], "❓")
-            st.metric("状态", f"{status_emoji} {latest['status']}")
+            st.metric(t("status"), f"{status_emoji} {status_map.get(latest['status'], latest['status'])}")
     
     # 趋势分析
-    st.subheader("📊 趋势分析")
+    st.subheader(t("trend_analysis"))
     trend = analysis['trend']
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("当前温度", f"{trend.get('current_temp', 0):.2f}°C")
+        st.metric(t("current_temp"), f"{trend.get('current_temp', 0):.2f}°C")
     with col2:
-        trend_emoji = "📈" if trend.get('trend') == "上升" else "📉" if trend.get('trend') == "下降" else "➡️"
-        st.metric("趋势", f"{trend_emoji} {trend.get('trend', 'N/A')}")
+        trend_text = trend.get('trend', 'N/A')
+        # 处理趋势文本翻译
+        if trend_text == "上升":
+            trend_display = t("rising")
+        elif trend_text == "下降":
+            trend_display = t("falling")
+        elif trend_text == "稳定":
+            trend_display = t("stable")
+        else:
+            trend_display = trend_text
+        trend_emoji = "📈" if trend_text == "上升" else "📉" if trend_text == "下降" else "➡️"
+        st.metric(t("trend"), f"{trend_emoji} {trend_display}")
     with col3:
-        st.metric("波动性", f"{trend.get('volatility', 0):.2f}")
+        st.metric(t("volatility"), f"{trend.get('volatility', 0):.2f}")
     
     # 异常检测
     if analysis['anomalies_count'] > 0:
-        st.subheader("⚠️ 异常检测")
-        st.warning(f"检测到 {analysis['anomalies_count']} 个异常读数")
+        st.subheader(t("anomaly_detection"))
+        st.warning(t("anomalies_detected", count=analysis['anomalies_count']))
         anomalies_df = {
-            '时间': [a['timestamp'] for a in analysis['anomalies']],
-            '温度': [a['temperature'] for a in analysis['anomalies']],
-            'Z-score': [a['z_score'] for a in analysis['anomalies']],
-            '类型': [a['anomaly_type'] for a in analysis['anomalies']]
+            t("timestamp_col"): [a['timestamp'] for a in analysis['anomalies']],
+            t("temp_col"): [a['temperature'] for a in analysis['anomalies']],
+            t("z_score"): [a['z_score'] for a in analysis['anomalies']],
+            t("type_col"): [a['anomaly_type'] for a in analysis['anomalies']]
         }
         st.dataframe(anomalies_df, width='stretch', hide_index=True)
     else:
-        st.success("✅ 未检测到异常")
+        st.success(t("no_anomalies"))
     
     # LLM分析（流式输出）
-    st.subheader("🤖 AI智能分析")
+    st.subheader(t("ai_analysis"))
     
     # 添加流式输出选项
-    use_stream = st.checkbox("启用流式输出", value=True, help="实时显示AI分析生成过程")
+    use_stream = st.checkbox(t("enable_stream"), value=True, help=t("stream_hint"))
     
     if use_stream:
         # 流式输出
         analysis_placeholder = st.empty()
         full_text = ""
         
-        with st.spinner("正在生成AI分析..."):
+        with st.spinner(t("generating_analysis")):
             for chunk in analyzer.analyze_device_stream(device_id, "comprehensive"):
                 full_text += chunk
                 analysis_placeholder.markdown(full_text)
@@ -320,49 +362,52 @@ def show_device_detail(analyzer):
         analysis_placeholder.markdown(cleaned_text)
     else:
         # 传统方式（一次性输出）
-        with st.spinner("正在分析设备数据..."):
+        with st.spinner(t("analyzing_data")):
             analysis = analyzer.analyze_device(device_id)
         st.markdown(analysis['llm_analysis'])
 
 def show_comprehensive_analysis(analyzer):
     """显示综合分析"""
-    st.header("🔬 综合分析")
+    st.header(t("comprehensive_analysis"))
     
     # 分析类型选择
+    analysis_type_options = [t("analysis_comprehensive"), t("analysis_anomaly"), 
+                             t("analysis_trend"), t("analysis_recommendation")]
     analysis_type = st.radio(
-        "选择分析类型",
-        ["综合分析", "异常分析", "趋势分析", "建议方案"],
+        t("select_analysis_type"),
+        analysis_type_options,
         horizontal=True
     )
     
+    # 创建反向映射
     analysis_type_map = {
-        "综合分析": "comprehensive",
-        "异常分析": "anomaly",
-        "趋势分析": "trend",
-        "建议方案": "recommendation"
+        t("analysis_comprehensive"): "comprehensive",
+        t("analysis_anomaly"): "anomaly",
+        t("analysis_trend"): "trend",
+        t("analysis_recommendation"): "recommendation"
     }
     
     # 设备选择（可选）
     devices = analyzer.get_device_list()
     device_options = {f"{d['device_name']} ({d['device_id']})": d['device_id'] 
                      for d in devices}
-    device_options["所有设备"] = None
+    device_options[t("all_devices")] = None
     
-    selected_device_name = st.selectbox("选择设备（可选）", list(device_options.keys()))
+    selected_device_name = st.selectbox(t("select_device_optional"), list(device_options.keys()))
     device_id = device_options[selected_device_name]
     
     # 流式输出选项
-    use_stream = st.checkbox("启用流式输出", value=True, help="实时显示AI分析生成过程")
+    use_stream = st.checkbox(t("enable_stream"), value=True, help=t("stream_hint"))
     
     # 执行分析
-    if st.button("开始分析", type="primary"):
+    if st.button(t("start_analysis"), type="primary"):
         if device_id:
             if use_stream:
                 # 流式输出
                 analysis_placeholder = st.empty()
                 full_text = ""
                 
-                with st.spinner("正在生成AI分析报告..."):
+                with st.spinner(t("generating_report")):
                     for chunk in analyzer.analyze_device_stream(device_id, analysis_type_map[analysis_type]):
                         full_text += chunk
                         analysis_placeholder.markdown(full_text)
@@ -375,51 +420,51 @@ def show_comprehensive_analysis(analyzer):
                 analysis_placeholder.markdown(cleaned_text)
             else:
                 # 传统方式
-                with st.spinner("正在生成AI分析报告..."):
+                with st.spinner(t("generating_report")):
                     analysis = analyzer.analyze_device(device_id, analysis_type_map[analysis_type])
                     st.markdown(analysis['llm_analysis'])
         else:
             # 所有设备的分析（暂时不支持流式）
-            with st.spinner("正在生成AI分析报告..."):
+            with st.spinner(t("generating_report")):
                 all_analysis = analyzer.get_all_devices_analysis()
                 st.markdown(all_analysis['llm_analysis'])
 
 def show_data_visualization(analyzer):
     """显示数据可视化"""
-    st.header("📊 数据可视化")
+    st.header(t("data_visualization"))
     
     devices = analyzer.get_device_list()
     if not devices:
-        st.warning("没有找到设备数据")
+        st.warning(t("no_devices"))
         return
     
     # 设备选择
     device_options = {f"{d['device_name']} ({d['device_id']})": d['device_id'] 
                      for d in devices}
-    selected_device_name = st.selectbox("选择设备", list(device_options.keys()))
+    selected_device_name = st.selectbox(t("select_device"), list(device_options.keys()))
     device_id = device_options[selected_device_name]
     
     # 获取图表数据
     chart_data = analyzer.get_temperature_chart_data(device_id)
     
     if not chart_data['timestamps']:
-        st.warning("该设备没有数据")
+        st.warning(t("no_data"))
         return
     
     # 温度趋势图
-    st.subheader("🌡️ 温度趋势")
+    st.subheader(t("temperature_trend"))
     fig_temp = go.Figure()
     fig_temp.add_trace(go.Scatter(
         x=chart_data['timestamps'],
         y=chart_data['temperatures'],
         mode='lines+markers',
-        name='温度',
+        name=t("temperature"),
         line=dict(color='#1f77b4', width=2),
         marker=dict(size=6)
     ))
     fig_temp.update_layout(
-        xaxis_title="时间",
-        yaxis_title="温度 (°C)",
+        xaxis_title=t("time_label"),
+        yaxis_title=t("temp_label"),
         hovermode='x unified',
         height=400
     )
@@ -427,26 +472,26 @@ def show_data_visualization(analyzer):
     
     # 温度和湿度双轴图
     if chart_data['humidity']:
-        st.subheader("🌡️💧 温度与湿度")
+        st.subheader(t("temp_humidity"))
         fig_dual = make_subplots(specs=[[{"secondary_y": True}]])
         fig_dual.add_trace(
             go.Scatter(x=chart_data['timestamps'], y=chart_data['temperatures'],
-                      name="温度", line=dict(color='#ff7f0e')),
+                      name=t("temperature"), line=dict(color='#ff7f0e')),
             secondary_y=False
         )
         fig_dual.add_trace(
             go.Scatter(x=chart_data['timestamps'], y=chart_data['humidity'],
-                      name="湿度", line=dict(color='#2ca02c')),
+                      name=t("humidity"), line=dict(color='#2ca02c')),
             secondary_y=True
         )
-        fig_dual.update_xaxes(title_text="时间")
-        fig_dual.update_yaxes(title_text="温度 (°C)", secondary_y=False)
-        fig_dual.update_yaxes(title_text="湿度 (%)", secondary_y=True)
+        fig_dual.update_xaxes(title_text=t("time_label"))
+        fig_dual.update_yaxes(title_text=t("temp_label"), secondary_y=False)
+        fig_dual.update_yaxes(title_text=t("humidity_label"), secondary_y=True)
         fig_dual.update_layout(height=400, hovermode='x unified')
         st.plotly_chart(fig_dual, width='stretch')
     
     # 数据表格
-    st.subheader("📋 原始数据")
+    st.subheader(t("raw_data"))
     df = analyzer.get_dataframe(device_id)
     st.dataframe(df, width='stretch')
 

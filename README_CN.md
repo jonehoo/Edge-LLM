@@ -602,6 +602,15 @@ export OPENAI_API_KEY="your-api-key"
 - 问题反馈：[Issues](https://github.com/jonehoo/Edge-LLM/issues)
 - 功能建议：[Discussions](https://github.com/jonehoo/Edge-LLM/discussions)
 
+### 📱 关注我们
+
+扫描二维码关注我们的公众号，获取最新更新、教程和社区讨论：
+
+<div align="center">
+  <img src="image/公众号二维码.jpg" alt="公众号二维码" width="200"/>
+  <p><em>扫描二维码关注公众号</em></p>
+</div>
+
 ## ⭐ Star History
 
 如果这个项目对你有帮助，请给一个 Star ⭐

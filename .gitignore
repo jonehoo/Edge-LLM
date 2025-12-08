@@ -43,6 +43,9 @@ Thumbs.db
 htmlcov/
 data_writer.log
 
+# Documentation (not for repository)
+docs/
+
 # Models (too large for git)
 models/*.gguf
 models/*.bin

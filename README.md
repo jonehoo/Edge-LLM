@@ -602,6 +602,15 @@ export OPENAI_API_KEY="your-api-key"
 - Issue Reports: [Issues](https://github.com/jonehoo/Edge-LLM/issues)
 - Feature Suggestions: [Discussions](https://github.com/jonehoo/Edge-LLM/discussions)
 
+### 📱 Follow Us
+
+Scan the QR code to follow our WeChat official account for the latest updates, tutorials, and community discussions:
+
+<div align="center">
+  <img src="image/公众号二维码.jpg" alt="WeChat Official Account QR Code" width="200"/>
+  <p><em>Scan to follow our WeChat Official Account</em></p>
+</div>
+
 ## ⭐ Star History
 
 If this project helps you, please give it a Star ⭐
