@@ -24,7 +24,7 @@ database:
 # 模型配置
 model:
   # 模型类型: "local" 或 "openai"
-  type: "local"  # 可选: "local" 或 "openai"
+  type: "openai"  # 可选: "local" 或 "openai"
   # 本地模型配置（当 type = "local" 时使用）
   path: "models/qwen-0.6b.gguf"
   # 上下文窗口大小（token数）
@@ -56,6 +56,9 @@ openai:
   model: "spark-lite"
   # OpenAI API基础URL（可选，用于兼容OpenAI API的代理服务）
   base_url: "https://api.pearktrue.cn/v1"
+  # 启用非思考模式（性能优化）：在请求中加入 /no_think 参数，响应时间可从10秒降至1秒左右
+  # 注意：此功能需要API支持，不支持的API会忽略此参数
+  no_think: true  # 设置为 true 以启用非思考模式（提升响应速度）
   
 # 分析配置
 analysis:

@@ -84,6 +84,11 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "select_device_optional": "选择设备（可选）",
         "all_devices": "所有设备",
         "generating_report": "正在生成AI分析报告...",
+        "date_range_filter": "📅 日期区间筛选",
+        "start_date": "开始日期",
+        "end_date": "结束日期",
+        "select_date_range": "选择日期区间（可选）",
+        "use_date_filter": "启用日期筛选",
         
         # 数据可视化
         "data_visualization": "📊 数据可视化",
@@ -196,6 +201,11 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "select_device_optional": "Select Device (Optional)",
         "all_devices": "All Devices",
         "generating_report": "Generating AI Analysis Report...",
+        "date_range_filter": "📅 Date Range Filter",
+        "start_date": "Start Date",
+        "end_date": "End Date",
+        "select_date_range": "Select Date Range (Optional)",
+        "use_date_filter": "Enable Date Filter",
         
         # Data visualization
         "data_visualization": "📊 Data Visualization",

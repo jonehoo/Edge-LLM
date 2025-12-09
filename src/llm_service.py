@@ -37,7 +37,8 @@ class LLMService:
                  n_threads: int = 4,
                  openai_api_key: Optional[str] = None,
                  openai_model: str = "gpt-3.5-turbo",
-                 openai_base_url: Optional[str] = None):
+                 openai_base_url: Optional[str] = None,
+                 openai_no_think: bool = False):
         """
         初始化LLM服务
         
@@ -49,6 +50,7 @@ class LLMService:
             openai_api_key: OpenAI API密钥（当model_type="openai"时使用）
             openai_model: OpenAI模型名称，如 "gpt-3.5-turbo", "gpt-4" 等
             openai_base_url: OpenAI API基础URL（可选，用于兼容OpenAI API的代理）
+            openai_no_think: 是否启用非思考模式（性能优化），响应时间可从10秒降至1秒左右
         """
         self.model_type = model_type.lower()
         self.model_path = Path(model_path) if model_path else None
@@ -57,6 +59,7 @@ class LLMService:
         self.openai_api_key = openai_api_key
         self.openai_model = openai_model
         self.openai_base_url = openai_base_url
+        self.openai_no_think = openai_no_think
         
         # 本地模型相关
         self.llm = None
@@ -147,6 +150,11 @@ class LLMService:
         Returns:
             生成的文本
         """
+        # 如果是OpenAI模式，使用OpenAI生成
+        if self.model_type == "openai":
+            return self._generate_openai(prompt, max_tokens, temperature, stop)
+        
+        # 本地模型模式
         if not self.model_loaded or self.llm is None:
             return self._mock_generate(prompt)
         
@@ -178,6 +186,44 @@ class LLMService:
             return generated_text
         except Exception as e:
             logger.error(f"生成文本时出错: {e}")
+            return self._mock_generate(prompt)
+    
+    def _generate_openai(self, prompt: str, max_tokens: int,
+                        temperature: float, stop: Optional[List[str]]) -> str:
+        """使用OpenAI API生成文本（非流式）"""
+        if not self.openai_available or self.openai_client is None:
+            logger.error("OpenAI客户端未初始化，将使用模拟模式")
+            return self._mock_generate(prompt)
+        
+        try:
+            # 如果启用了非思考模式，在提示词前添加 /no_think 参数
+            user_content = prompt
+            if self.openai_no_think:
+                user_content = "/no_think\n\n" + prompt
+                logger.debug("已启用非思考模式（/no_think），响应速度将提升")
+            
+            response = self.openai_client.chat.completions.create(
+                model=self.openai_model,
+                messages=[
+                    {"role": "system", "content": "你是一个专业的数据分析助手，擅长分析温度传感器数据并提供专业的建议。"},
+                    {"role": "user", "content": user_content}
+                ],
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stop=stop if stop else None
+            )
+            
+            generated_text = response.choices[0].message.content.strip()
+            
+            # 后处理：移除明显的重复模式
+            generated_text = self._remove_repetition(generated_text)
+            
+            # 移除提示词残留
+            generated_text = self._clean_prompt_artifacts(generated_text)
+            
+            return generated_text
+        except Exception as e:
+            logger.error(f"OpenAI生成文本时出错: {e}")
             return self._mock_generate(prompt)
     
     def generate_stream(self, prompt: str, max_tokens: int = 512,
@@ -285,11 +331,17 @@ class LLMService:
             return
         
         try:
+            # 如果启用了非思考模式，在提示词前添加 /no_think 参数
+            user_content = prompt
+            if self.openai_no_think:
+                user_content = "/no_think\n\n" + prompt
+                logger.debug("已启用非思考模式（/no_think），响应速度将提升")
+            
             stream = self.openai_client.chat.completions.create(
                 model=self.openai_model,
                 messages=[
                     {"role": "system", "content": "你是一个专业的数据分析助手，擅长分析温度传感器数据并提供专业的建议。"},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": user_content}
                 ],
                 max_tokens=max_tokens,
                 temperature=temperature,
@@ -421,6 +473,8 @@ class LLMService:
         common_repeats = [
             "好的，我现在为您整理了",
             "好的，我已根据要求",
+            "好的!以下是",
+            "好的!以下是基于",
             "希望您能理解并接受",
             "如果还有其他问题",
             "以下是最终回答",
@@ -472,10 +526,24 @@ class LLMService:
             "问题分析：",
             "问题均已正确回答",
             "好的，以下是根据",
+            "好的!以下是",
+            "好的!以下是基于",
+            "好的!以下是基于温度数据",
+            "好的，我现在",
             "所有信息均符合要求",
             "所有信息均符合",
             "问题用编号标注",
-            "每句不超过"
+            "每句不超过",
+            "每个建议不超过",
+            "每个方面用",
+            "每个要点用",
+            "每个问题用",
+            "分点明确",
+            "要求：",
+            "要求:",
+            "请直接",
+            "请直接回答",
+            "请直接提供"
         ]
         
         lines = text.split('\n')
@@ -497,6 +565,16 @@ class LLMService:
             if line.endswith('：') and len(line) < 10:
                 is_artifact = True
             
+            # 检查是否是问题描述行（如"每个建议不超过3句话，分点明确。"）
+            if re.search(r'每个[^。！？]*不超过\d+句话', line) or \
+               re.search(r'每个[^。！？]*用\d+[-\s]*\d*句话', line) or \
+               re.search(r'分点明确', line) and len(line) < 20:
+                is_artifact = True
+            
+            # 检查是否是"好的!以下是..."开头的行（但不包括Markdown标题）
+            if re.match(r'好的[！!]?以下[是是基于于]*', line) and not line.strip().startswith('#'):
+                is_artifact = True
+            
             if not is_artifact:
                 cleaned_lines.append(line)
         
@@ -505,6 +583,15 @@ class LLMService:
         # 移除开头的格式标记
         if result.startswith('- '):
             result = result[2:].strip()
+        
+        # 移除包含问题描述的句子（如"每个建议不超过3句话，分点明确。"）
+        result = re.sub(r'每个[^。！？\n]+不超过\d+句话[^。！？\n]*[。！？]?', '', result)
+        result = re.sub(r'每个[^。！？\n]+用\d+[-\s]*\d*句话[^。！？\n]*[。！？]?', '', result)
+        result = re.sub(r'分点明确[。！？]?', '', result)
+        result = re.sub(r'要求[：:][^。！？\n]*[。！？]?', '', result)
+        
+        # 移除"好的!以下是..."开头的句子（但要保留Markdown标题）
+        result = re.sub(r'好的[！!]?以下[是是基于于]*[^。！？\n#]*[：:：][^。！？\n#]*[。！？]?', '', result)
         
         # 移除重复的"问题X已回答"等标记
         result = re.sub(r'[（(]问题\d+已回答[）)]', '', result)
@@ -637,18 +724,25 @@ class LLMService:
 
 {data_summary}
 
-请从以下方面进行分析，每个方面用2-3句话概括：
-1. 数据概览和关键指标
-2. 异常检测和风险评估
-3. 温度趋势分析
-4. 设备健康状态评估
-5. 改进建议和预防措施
+请使用Markdown格式输出，从以下方面进行分析，每个方面用2-3句话概括：
+
+## 1. 数据概览和关键指标
+
+## 2. 异常检测和风险评估
+
+## 3. 温度趋势分析
+
+## 4. 设备健康状态评估
+
+## 5. 改进建议和预防措施
 
 重要要求：
+- 使用Markdown格式：使用 ## 作为二级标题，使用 **粗体** 强调关键数据，使用列表展示要点
 - 用中文回答，语言专业但易懂
 - 每个方面只说一次，不要重复
 - 不要重复前面的内容
-- 直接给出分析结果，不要添加"好的"、"接下来"等过渡语
+- 直接给出分析结果，不要添加"好的"、"接下来"、"以下是"等过渡语
+- 不要输出问题描述或要求（如"每个方面用X句话"等）
 - 分析完成后立即结束"""
         
         elif analysis_type == "anomaly":
@@ -656,42 +750,73 @@ class LLMService:
 
 {data_summary}
 
-请直接回答以下问题，每个问题用2-3句话：
-1. 异常温度点的识别
-2. 异常原因分析
-3. 异常对设备的影响
-4. 处理建议
+请使用Markdown格式输出，直接回答以下问题，每个问题用2-3句话：
 
-要求：用中文回答，简洁明了，不要重复，不要添加"请"、"以下是"等过渡语。"""
+## 1. 异常温度点的识别
+
+## 2. 异常原因分析
+
+## 3. 异常对设备的影响
+
+## 4. 处理建议
+
+要求：
+- 使用Markdown格式：使用 ## 作为二级标题，使用 **粗体** 强调关键信息，使用列表展示要点
+- 用中文回答，简洁明了，不要重复
+- 不要添加"请"、"以下是"、"好的"等过渡语
+- 不要输出问题描述或要求"""
         
         elif analysis_type == "trend":
             return f"""分析以下温度数据的趋势：
 
 {data_summary}
 
-请直接回答，每个要点用2-3句话：
-1. 温度变化趋势
-2. 未来趋势预测
-3. 可能的风险点
-4. 建议的监控策略
+请使用Markdown格式输出，直接回答，每个要点用2-3句话：
 
-要求：用中文回答，简洁概括，不要重复，直接给出分析结果。"""
+## 1. 温度变化趋势
+
+## 2. 未来趋势预测
+
+## 3. 可能的风险点
+
+## 4. 建议的监控策略
+
+要求：
+- 使用Markdown格式：使用 ## 作为二级标题，使用 **粗体** 强调关键数据，使用列表展示要点
+- 用中文回答，简洁概括，不要重复
+- 直接给出分析结果，不要输出问题描述或要求"""
         
         elif analysis_type == "recommendation":
             return f"""基于以下温度数据分析，提供专业的改进建议：
 
 {data_summary}
 
-请直接提供建议，每个方面用2-3句话：
-1. 设备维护建议
-2. 温度控制优化方案
-3. 预防措施
-4. 长期监控策略
+请使用Markdown格式输出，直接提供建议，每个方面用2-3句话：
 
-要求：用中文回答，建议具体可行，不要重复，直接给出建议。"""
+## 1. 设备维护建议
+
+## 2. 温度控制优化方案
+
+## 3. 预防措施
+
+## 4. 长期监控策略
+
+重要要求：
+- 使用Markdown格式：使用 ## 作为二级标题，使用 **粗体** 强调关键建议，使用列表展示具体措施
+- 直接给出建议，不要重复问题
+- 不要添加"好的"、"以下是"等过渡语
+- 不要输出"每个建议不超过X句话"等要求描述"""
         
         else:
-            return f"""分析以下温度数据：\n\n{data_summary}\n\n用中文提供分析结果，简洁明了，不要重复。"""
+            return f"""分析以下温度数据：
+
+{data_summary}
+
+请使用Markdown格式输出分析结果：
+- 使用 ## 作为二级标题
+- 使用 **粗体** 强调关键信息
+- 使用列表展示要点
+- 用中文回答，简洁明了，不要重复"""
     
     def analyze_temperature_data(self, data_summary: str, 
                                  analysis_type: str = "comprehensive") -> str:
