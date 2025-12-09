@@ -21,6 +21,7 @@ class TemperatureAnalyzer:
                  openai_api_key: Optional[str] = None,
                  openai_model: str = "gpt-3.5-turbo",
                  openai_base_url: Optional[str] = None,
+                 openai_no_think: bool = False,
                  n_ctx: int = 2048,
                  n_threads: int = 4):
         """
@@ -34,6 +35,7 @@ class TemperatureAnalyzer:
             openai_api_key: OpenAI API密钥（当model_type="openai"时使用）
             openai_model: OpenAI模型名称
             openai_base_url: OpenAI API基础URL（可选）
+            openai_no_think: 是否启用非思考模式（性能优化），响应时间可从10秒降至1秒左右
             n_ctx: 本地模型上下文窗口大小
             n_threads: 本地模型线程数
         """
@@ -53,7 +55,8 @@ class TemperatureAnalyzer:
             n_threads=n_threads,
             openai_api_key=openai_api_key,
             openai_model=openai_model,
-            openai_base_url=openai_base_url
+            openai_base_url=openai_base_url,
+            openai_no_think=openai_no_think
         )
         
         # 加载数据
@@ -111,21 +114,25 @@ class TemperatureAnalyzer:
         }
     
     def analyze_device(self, device_id: str, 
-                      analysis_type: str = "comprehensive") -> Dict:
+                      analysis_type: str = "comprehensive",
+                      start_time: Optional[str] = None,
+                      end_time: Optional[str] = None) -> Dict:
         """
         分析设备数据（包含LLM分析）
         
         Args:
             device_id: 设备ID
             analysis_type: 分析类型
+            start_time: 开始时间 (ISO格式字符串)
+            end_time: 结束时间 (ISO格式字符串)
             
         Returns:
             分析结果字典
         """
-        # 获取数据摘要
-        data_summary = self.data_processor.prepare_for_llm(device_id)
+        # 获取数据摘要（带日期范围）
+        data_summary = self.data_processor.prepare_for_llm(device_id, start_time, end_time)
         
-        # 获取基础分析
+        # 获取基础分析（暂时不支持日期范围，使用全部数据）
         overview = self.get_device_overview(device_id)
         
         # LLM分析
@@ -207,19 +214,23 @@ class TemperatureAnalyzer:
         }
     
     def analyze_device_stream(self, device_id: str, 
-                              analysis_type: str = "comprehensive") -> Iterator[str]:
+                              analysis_type: str = "comprehensive",
+                              start_time: Optional[str] = None,
+                              end_time: Optional[str] = None) -> Iterator[str]:
         """
         流式分析设备数据（包含LLM分析）
         
         Args:
             device_id: 设备ID
             analysis_type: 分析类型
+            start_time: 开始时间 (ISO格式字符串)
+            end_time: 结束时间 (ISO格式字符串)
             
         Yields:
             分析文本片段
         """
-        # 获取数据摘要
-        data_summary = self.data_processor.prepare_for_llm(device_id)
+        # 获取数据摘要（带日期范围）
+        data_summary = self.data_processor.prepare_for_llm(device_id, start_time, end_time)
         
         # 使用LLM服务的流式分析方法
         for chunk in self.llm_service.analyze_temperature_data_stream(

@@ -70,6 +70,7 @@ def init_analyzer():
     openai_api_key = None
     openai_model = "gpt-3.5-turbo"
     openai_base_url = None
+    openai_no_think = False
     
     if config_path.exists():
         with open(config_path, 'r', encoding='utf-8') as f:
@@ -91,6 +92,7 @@ def init_analyzer():
             openai_api_key = openai_config.get('api_key')
             openai_model = openai_config.get('model', 'gpt-3.5-turbo')
             openai_base_url = openai_config.get('base_url')
+            openai_no_think = openai_config.get('no_think', False)
     
     return TemperatureAnalyzer(
         use_database=use_database,
@@ -100,15 +102,13 @@ def init_analyzer():
         n_threads=n_threads,
         openai_api_key=openai_api_key,
         openai_model=openai_model,
-        openai_base_url=openai_base_url
+        openai_base_url=openai_base_url,
+        openai_no_think=openai_no_think
     )
 
 
 # 主应用
 def main():
-    # 标题
-    st.markdown(f'<h1 class="main-header">{t("main_title")}</h1>', unsafe_allow_html=True)
-    
     # 初始化分析器
     analyzer = init_analyzer()
     
@@ -396,7 +396,36 @@ def show_comprehensive_analysis(analyzer):
     selected_device_name = st.selectbox(t("select_device_optional"), list(device_options.keys()))
     device_id = device_options[selected_device_name]
     
+    # 日期区间筛选
+    st.divider()
+    st.subheader(t("date_range_filter"))
+    use_date_filter = st.checkbox(t("use_date_filter"), value=False, help="启用后可以按日期范围筛选数据进行分析")
+    
+    start_date = None
+    end_date = None
+    
+    if use_date_filter:
+        col1, col2 = st.columns(2)
+        with col1:
+            start_date = st.date_input(t("start_date"), value=None)
+        with col2:
+            end_date = st.date_input(t("end_date"), value=None)
+        
+        if start_date and end_date and start_date > end_date:
+            st.error("开始日期不能晚于结束日期")
+            st.stop()
+    
+    # 转换日期为ISO格式字符串
+    start_time = None
+    end_time = None
+    if use_date_filter:
+        if start_date:
+            start_time = start_date.isoformat() + "T00:00:00"
+        if end_date:
+            end_time = end_date.isoformat() + "T23:59:59"
+    
     # 流式输出选项
+    st.divider()
     use_stream = st.checkbox(t("enable_stream"), value=True, help=t("stream_hint"))
     
     # 执行分析
@@ -408,7 +437,12 @@ def show_comprehensive_analysis(analyzer):
                 full_text = ""
                 
                 with st.spinner(t("generating_report")):
-                    for chunk in analyzer.analyze_device_stream(device_id, analysis_type_map[analysis_type]):
+                    for chunk in analyzer.analyze_device_stream(
+                        device_id, 
+                        analysis_type_map[analysis_type],
+                        start_time=start_time,
+                        end_time=end_time
+                    ):
                         full_text += chunk
                         analysis_placeholder.markdown(full_text)
                 
@@ -421,10 +455,15 @@ def show_comprehensive_analysis(analyzer):
             else:
                 # 传统方式
                 with st.spinner(t("generating_report")):
-                    analysis = analyzer.analyze_device(device_id, analysis_type_map[analysis_type])
+                    analysis = analyzer.analyze_device(
+                        device_id, 
+                        analysis_type_map[analysis_type],
+                        start_time=start_time,
+                        end_time=end_time
+                    )
                     st.markdown(analysis['llm_analysis'])
         else:
-            # 所有设备的分析（暂时不支持流式）
+            # 所有设备的分析（暂时不支持流式和日期筛选）
             with st.spinner(t("generating_report")):
                 all_analysis = analyzer.get_all_devices_analysis()
                 st.markdown(all_analysis['llm_analysis'])

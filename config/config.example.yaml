@@ -57,6 +57,9 @@ openai:
   model: "gpt-3.5-turbo"
   # OpenAI API基础URL（可选，用于兼容OpenAI API的代理服务）
   # base_url: "https://api.openai.com/v1"
+  # 启用非思考模式（性能优化）：在请求中加入 /no_think 参数，响应时间可从10秒降至1秒左右
+  # 注意：此功能需要API支持，不支持的API会忽略此参数
+  no_think: false  # 设置为 true 以启用非思考模式（提升响应速度）
   
 # 分析配置
 analysis:
